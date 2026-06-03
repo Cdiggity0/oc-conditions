@@ -63,7 +63,6 @@ async function buildMessage() {
     ];
 
     try {
-<<<<<<< HEAD
       const sbRes  = await fetch("http://localhost:3000/api/surf-beaches");
       const sbJson = await sbRes.json();
       if (sbJson.ok && sbJson.data) {
@@ -77,8 +76,6 @@ async function buildMessage() {
     }
 
     try {
-=======
->>>>>>> 59effabd5ae027da8fdb4da2118b64ea91e2aa56
       const aRes  = await fetch("http://localhost:3000/api/assignment");
       const aJson = await aRes.json();
       if (aJson.ok && aJson.data.assignment) lines.push(aJson.data.assignment);

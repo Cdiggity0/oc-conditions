@@ -14,12 +14,8 @@ const express = require("express");
 const fetch   = require("node-fetch");
 const path    = require("path");
 
-<<<<<<< HEAD
-const { sendDailyTexts }      = require("./sms-cron");
+const { sendDailyTexts }       = require("./sms-cron");
 const { getTodaysSurfBeaches } = require("./surfBeaches");
-=======
-const { sendDailyTexts } = require("./sms-cron");
->>>>>>> 59effabd5ae027da8fdb4da2118b64ea91e2aa56
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -118,7 +114,6 @@ app.get("/api/assignment", async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
 // ── Surf Beaches Route ────────────────────────────────────────
 app.get("/api/surf-beaches", (req, res) => {
   try {
@@ -129,8 +124,6 @@ app.get("/api/surf-beaches", (req, res) => {
   }
 });
 
-=======
->>>>>>> 59effabd5ae027da8fdb4da2118b64ea91e2aa56
 // ── Subscribe Route ───────────────────────────────────────────
 app.post("/api/subscribe", (req, res) => {
   const { name, phone, email } = req.body || {};
