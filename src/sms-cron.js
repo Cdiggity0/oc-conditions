@@ -1,11 +1,9 @@
 const cron       = require("node-cron");
-const twilio     = require("twilio");
 const nodemailer = require("nodemailer");
-const fetch      = require("node-fetch");
-const fs         = require("fs");
-const path       = require("path");
 
-const SUBSCRIBERS_PATH = path.join(__dirname, "../subscribers.json");
+const { fetchConditions }      = require("./conditions");
+const { getTodaysSurfBeaches } = require("./surfBeaches");
+const { fetchAssignment }      = require("./assignment");
 
 function fmtTime(str) {
   if (!str) return "--";
@@ -38,10 +36,7 @@ function calcRipLevel(data) {
 
 async function buildMessage() {
   try {
-    const res  = await fetch("http://localhost:3000/api/conditions");
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || "API error");
-    const d = json.data;
+    const d = await fetchConditions();
 
     const high = d.tides.nextHigh ? fmtTime(d.tides.nextHigh.time) : "--";
     const low  = d.tides.nextLow  ? fmtTime(d.tides.nextLow.time)  : "--";
@@ -63,91 +58,34 @@ async function buildMessage() {
     ];
 
     try {
-      const sbRes  = await fetch("http://localhost:3000/api/surf-beaches");
-      const sbJson = await sbRes.json();
-      if (sbJson.ok && sbJson.data) {
-        const { south, north, inlet } = sbJson.data;
-        if (south) lines.push(`SURF S: ${south}`);
-        if (north) lines.push(`SURF N: ${north}`);
-        if (inlet) lines.push(`INLET: ${inlet}`);
-      }
+      const { south, north, inlet } = getTodaysSurfBeaches();
+      if (south) lines.push(`SURF S: ${south}`);
+      if (north) lines.push(`SURF N: ${north}`);
+      if (inlet) lines.push(`INLET: ${inlet}`);
     } catch (e) {
-      console.warn("[sms-cron] Surf beaches fetch skipped:", e.message);
+      console.warn("[sms-cron] Surf beaches skipped:", e.message);
     }
 
     try {
-      const aRes  = await fetch("http://localhost:3000/api/assignment");
-      const aJson = await aRes.json();
-      if (aJson.ok && aJson.data.assignment) lines.push(aJson.data.assignment);
+      const assignment = await fetchAssignment();
+      if (assignment) lines.push(assignment);
     } catch (e) {
       console.warn("[sms-cron] Assignment fetch skipped:", e.message);
     }
 
     return lines.join("\n");
   } catch (err) {
-    console.error("[sms-cron] Failed to fetch conditions:", err.message);
+    console.error("[sms-cron] Failed to build message:", err.message);
     return "Surf Report: Data unavailable today.";
   }
 }
 
 async function sendDailyTexts() {
-  const subscribers = JSON.parse(fs.readFileSync(SUBSCRIBERS_PATH, "utf8"));
-  if (!subscribers.length) {
-    console.log("[sms-cron] No subscribers — skipping send.");
+  const to = process.env.NOTIFY_EMAIL;
+  if (!to) {
+    console.log("[sms-cron] NOTIFY_EMAIL not set — skipping.");
     return;
   }
-
-  await sendEmailReport();
-
-  const client = twilio(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-  );
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-  const body = await buildMessage();
-
-  for (const sub of subscribers) {
-    const digits = sub.phone.replace(/\D/g, "");
-    if (digits.length !== 10) {
-      console.warn(`[sms-cron] Skipping ${sub.name} — invalid phone: ${sub.phone}`);
-      continue;
-    }
-    try {
-      await client.messages.create({
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to:   `+1${digits}`,
-        body,
-      });
-      console.log(`[sms-cron] SMS sent to ${sub.name} (+1${digits})`);
-    } catch (err) {
-      console.error(`[sms-cron] SMS failed for ${sub.name} (+1${digits}):`, err.message);
-    }
-
-    if (sub.email) {
-      try {
-        await transporter.sendMail({
-          from:    process.env.GMAIL_USER,
-          to:      sub.email,
-          subject: "Daily Surf Report",
-          text:    body,
-        });
-        console.log(`[sms-cron] Email sent to ${sub.name} (${sub.email})`);
-      } catch (err) {
-        console.error(`[sms-cron] Email failed for ${sub.name} (${sub.email}):`, err.message);
-      }
-    }
-  }
-}
-
-async function sendEmailReport() {
-  const to = process.env.NOTIFY_EMAIL;
-  if (!to) return;
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -166,7 +104,7 @@ async function sendEmailReport() {
     });
     console.log(`[sms-cron] Email sent to ${to}`);
   } catch (err) {
-    console.error(`[sms-cron] Email failed for ${to}:`, err.message);
+    console.error(`[sms-cron] Email failed:`, err.message);
   }
 }
 
@@ -174,8 +112,8 @@ module.exports = { sendDailyTexts };
 
 // Runs daily at 9:30 AM Eastern
 cron.schedule("30 9 * * *", () => {
-  console.log("[sms-cron] Firing daily surf text...");
+  console.log("[sms-cron] Firing daily surf email...");
   sendDailyTexts().catch(err => console.error("[sms-cron] Unexpected error:", err));
 }, { timezone: "America/New_York" });
 
-console.log("[sms-cron] Scheduled — daily surf texts at 9:30 AM ET");
+console.log("[sms-cron] Scheduled — daily surf email at 9:30 AM ET");

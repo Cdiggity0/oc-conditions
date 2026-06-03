@@ -12,7 +12,8 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(node *)",
-      "Bash(pkill -f \"node.*server\")"
+      "Bash(pkill -f \"node.*server\")",
+      "Bash(kill %1)"
     ]
   }
 }
