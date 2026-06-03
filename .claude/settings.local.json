@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:oceancitymd.gov)",
+      "Bash(curl -s -A \"Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://oceancitymd.gov/bp/surf_report/index.php\")",
+      "Bash(curl -s http://localhost:3000/api/conditions)",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); console.log\\('ripCurrentRisk:', j.data?.ripCurrentRisk\\); console.log\\('surfingBeaches:', JSON.stringify\\(j.data?.surfingBeaches\\)\\)\")",
+      "WebFetch(domain:docs.google.com)",
+      "WebFetch(domain:doc-0c-44-sheets.googleusercontent.com)",
+      "Bash(curl *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
