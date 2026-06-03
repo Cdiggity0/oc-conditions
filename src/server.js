@@ -14,7 +14,8 @@ const express = require("express");
 const fetch   = require("node-fetch");
 const path    = require("path");
 
-const { sendDailyTexts } = require("./sms-cron");
+const { sendDailyTexts }      = require("./sms-cron");
+const { getTodaysSurfBeaches } = require("./surfBeaches");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -109,6 +110,16 @@ app.get("/api/assignment", async (req, res) => {
     res.json({ ok: true, data: { assignment } });
   } catch (err) {
     console.error("Assignment fetch failed:", err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ── Surf Beaches Route ────────────────────────────────────────
+app.get("/api/surf-beaches", (req, res) => {
+  try {
+    const beaches = getTodaysSurfBeaches();
+    res.json({ ok: true, data: beaches });
+  } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
 });

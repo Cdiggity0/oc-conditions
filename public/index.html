@@ -1064,17 +1064,7 @@ async function loadConditions() {
       factorsEl.innerHTML = pills.join("");
     }
 
-    // ── Surf beaches ────────────────────────────────────────
-    const sb = d.surfingBeaches;
-    if (sb != null) {
-      renderSurfStatus("north-surf-status", sb.north ? "137th St" : "CLOSED", sb.north ? "#fff" : "#ef4444");
-      renderSurfStatus("south-surf-status", sb.south ? "57th St"  : "CLOSED", sb.south ? "#fff" : "#ef4444");
-      renderSurfStatus("inlet-status",      sb.inlet ? "OPEN"     : "CLOSED", sb.inlet ? "#22c55e" : "#ef4444");
-    } else {
-      ["north-surf-status","south-surf-status","inlet-status"].forEach(id =>
-        renderSurfStatus(id, "N/A", "var(--text-dim)")
-      );
-    }
+    // ── Surf beaches (schedule-based, loaded separately) ────
 
     // ── Wind ────────────────────────────────────────────────
     const ws  = d.wind.speedKnots;
@@ -1226,9 +1216,35 @@ async function loadForecastStrips() {
   }
 }
 
+function inletColor(status) {
+  if (!status) return "var(--text-dim)";
+  const s = status.toUpperCase();
+  if (s === "OPEN") return "#22c55e";
+  if (s.includes("CONDITIONAL")) return "#fbbf24";
+  return "#ef4444";
+}
+
+async function loadSurfBeaches() {
+  try {
+    const res  = await fetch("/api/surf-beaches");
+    const json = await res.json();
+    if (!json.ok || !json.data) return;
+    const { south, north, inlet } = json.data;
+    renderSurfStatus("south-surf-status", south || "Not scheduled", south ? "#fff" : "var(--text-dim)");
+    renderSurfStatus("north-surf-status", north || "Not scheduled", north ? "#fff" : "var(--text-dim)");
+    renderSurfStatus("inlet-status",      inlet || "N/A",           inletColor(inlet));
+  } catch(err) {
+    console.warn("Surf beaches load failed:", err);
+    ["north-surf-status","south-surf-status","inlet-status"].forEach(id =>
+      renderSurfStatus(id, "N/A", "var(--text-dim)")
+    );
+  }
+}
+
 loadConditions();
 setInterval(loadConditions, REFRESH_MS);
 loadForecastStrips();
+loadSurfBeaches();
 
 async function loadAssignment() {
   try {

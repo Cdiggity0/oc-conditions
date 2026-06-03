@@ -63,6 +63,19 @@ async function buildMessage() {
     ];
 
     try {
+      const sbRes  = await fetch("http://localhost:3000/api/surf-beaches");
+      const sbJson = await sbRes.json();
+      if (sbJson.ok && sbJson.data) {
+        const { south, north, inlet } = sbJson.data;
+        if (south) lines.push(`SURF S: ${south}`);
+        if (north) lines.push(`SURF N: ${north}`);
+        if (inlet) lines.push(`INLET: ${inlet}`);
+      }
+    } catch (e) {
+      console.warn("[sms-cron] Surf beaches fetch skipped:", e.message);
+    }
+
+    try {
       const aRes  = await fetch("http://localhost:3000/api/assignment");
       const aJson = await aRes.json();
       if (aJson.ok && aJson.data.assignment) lines.push(aJson.data.assignment);
